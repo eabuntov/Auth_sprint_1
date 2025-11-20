@@ -3,3 +3,5 @@ fastapi
 sqlalchemy
 alembic
 psycopg2
+bcrypt
+python-jose
