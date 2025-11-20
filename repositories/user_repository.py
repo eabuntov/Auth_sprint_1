@@ -8,16 +8,13 @@ class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-
     async def get_by_id(self, user_id: UUID):
         result = await self.session.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
-
     async def get_by_email(self, email: str):
         result = await self.session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
-
 
     async def create(self, **kwargs):
         user = User(**kwargs)
@@ -25,13 +22,11 @@ class UserRepository:
         await self.session.flush()
         return user
 
-
     async def update(self, user: User, **kwargs):
         for k, v in kwargs.items():
             setattr(user, k, v)
         await self.session.flush()
         return user
-
 
     async def delete(self, user: User):
         await self.session.delete(user)

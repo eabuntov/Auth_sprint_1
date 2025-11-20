@@ -1,6 +1,15 @@
 # SQLAlchemy ORM Models
 # ---------------------------
-from sqlalchemy import Column, String, Boolean, DateTime, Enum as SAEnum, Integer, ForeignKey, Table
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    DateTime,
+    Enum as SAEnum,
+    Integer,
+    ForeignKey,
+    Table,
+)
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import declarative_base, relationship
 import uuid
@@ -18,6 +27,7 @@ user_roles = Table(
     Column("role_id", PGUUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True),
 )
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -33,6 +43,7 @@ class User(Base):
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     subscriptions = relationship("Subscription", back_populates="user")
 
+
 class Role(Base):
     __tablename__ = "roles"
 
@@ -45,6 +56,7 @@ class Role(Base):
     updated_at = Column(DateTime, onupdate=datetime.now)
 
     users = relationship("User", secondary=user_roles, back_populates="roles")
+
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -61,6 +73,7 @@ class Subscription(Base):
     ends_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="subscriptions")
+
 
 # Alembic migration heads will be generated automatically when running `alembic revision --autogenerate`
 # End of file

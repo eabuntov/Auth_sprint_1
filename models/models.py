@@ -34,6 +34,7 @@ Security notes (short):
 Pydantic models
 ---------------
 """
+
 from enum import Enum
 from typing import Optional
 from datetime import datetime, timedelta
@@ -42,9 +43,6 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, EmailStr, Field
 
 
-# ---------------------------
-# Enums and small DTOs
-# ---------------------------
 class Permission(str, Enum):
     # general app permissions (extend as needed)
     READ_PUBLIC_CONTENT = "read:public_content"
@@ -62,9 +60,6 @@ class RoleType(str, Enum):
     SYSTEM = "system"
 
 
-# ---------------------------
-# Token models
-# ---------------------------
 class Token(BaseModel):
     access_token: str
     refresh_token: Optional[str] = None
@@ -82,9 +77,6 @@ class TokenPayload(BaseModel):
     entitlements: Optional[list[str]] = []
 
 
-# ---------------------------
-# User models
-# ---------------------------
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
@@ -111,7 +103,6 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
 
 
-# Minimal public view of the user embedded in tokens
 class UserTokenInfo(BaseModel):
     sub: str
     email: EmailStr
@@ -120,9 +111,6 @@ class UserTokenInfo(BaseModel):
     is_superuser: bool = False
 
 
-# ---------------------------
-# Auth endpoints DTOs
-# ---------------------------
 class LoginRequest(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -143,9 +131,6 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
 
 
-# ---------------------------
-# Role and permission models
-# ---------------------------
 class RoleBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
@@ -184,9 +169,6 @@ class RoleAssignmentRead(BaseModel):
     created_at: datetime
 
 
-# ---------------------------
-# Subscription models
-# ---------------------------
 class SubscriptionStatus(str, Enum):
     ACTIVE = "active"
     PAST_DUE = "past_due"
@@ -199,7 +181,9 @@ class SubscriptionBase(BaseModel):
     description: Optional[str] = None
     # entitlements optionally granted by this subscription (e.g. "hd-stream", "catalog-premium")
     entitlements: set[str] = set()
-    duration_days: Optional[int] = None  # if recurring, this may be null/managed externally
+    duration_days: Optional[int] = (
+        None  # if recurring, this may be null/managed externally
+    )
 
 
 class SubscriptionCreate(SubscriptionBase):
@@ -214,9 +198,6 @@ class SubscriptionRead(SubscriptionBase):
     ends_at: Optional[datetime] = None
 
 
-# ---------------------------
-# Introspection / rights check
-# ---------------------------
 class RightsCheckRequest(BaseModel):
     user_id: Optional[UUID] = None
     token: Optional[str] = None
@@ -231,9 +212,6 @@ class RightsCheckResponse(BaseModel):
     reason: Optional[str] = None
 
 
-# ---------------------------
-# Admin & list responses
-# ---------------------------
 class PagedMeta(BaseModel):
     total: int
     page: int
@@ -245,15 +223,22 @@ class PagedResponse(BaseModel):
     items: list[BaseModel]
 
 
-# ---------------------------
-# Example factory helpers (non-pydantic runtime helpers)
-# ---------------------------
-
-def make_access_token_payload(user_id: str, roles: list[str], entitlements: list[str], expires_delta_seconds: int, jti: Optional[str] = None) -> TokenPayload:
+def make_access_token_payload(
+    user_id: str,
+    roles: list[str],
+    entitlements: list[str],
+    expires_delta_seconds: int,
+    jti: Optional[str] = None,
+) -> TokenPayload:
     now = datetime.now()
     iat = int(now.timestamp())
     exp = int((now + timedelta(seconds=expires_delta_seconds)).timestamp())
-    return TokenPayload(sub=user_id, iat=iat, exp=exp, jti=jti or str(uuid4()), roles=roles, scopes=[], entitlements=entitlements)
-
-
-# End of file
+    return TokenPayload(
+        sub=user_id,
+        iat=iat,
+        exp=exp,
+        jti=jti or str(uuid4()),
+        roles=roles,
+        scopes=[],
+        entitlements=entitlements,
+    )
