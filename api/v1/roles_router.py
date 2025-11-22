@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from dependencies import get_role_service
 from models.models import RoleRead, RoleCreate
 from services.role_service import RoleService
 

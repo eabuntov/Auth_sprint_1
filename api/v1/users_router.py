@@ -1,5 +1,9 @@
 from fastapi import APIRouter, Depends
 
+from dependencies import get_user_service
+from models.models import UserRead
+from services.user_service import UserService
+
 users_router = APIRouter(prefix="/users", tags=["users"])
 
 @users_router.get("/me", response_model=UserRead)
