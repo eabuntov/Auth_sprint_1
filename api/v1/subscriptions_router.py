@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from dependencies import get_subscription_service
+from models.db_models import SubscriptionAssign
 from models.models import SubscriptionRead
 from services.subscription_service import SubscriptionService
 

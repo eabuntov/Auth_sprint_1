@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from dependencies import get_user_service, get_token_service
+from models.db_models import UserLogin
 from models.models import UserRead, UserCreate
 from services.token_service import TokenService
 from services.user_service import UserService
