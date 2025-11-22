@@ -102,6 +102,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=8)
 
+
 class PasswordChange(BaseModel):
     old_password: str = Field(..., min_length=6)
     new_password: str = Field(..., min_length=6)
@@ -225,6 +226,16 @@ class PagedMeta(BaseModel):
 class PagedResponse(BaseModel):
     meta: PagedMeta
     items: list[BaseModel]
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class SubscriptionAssign(BaseModel):
+    user_id: int
+    subscription_type: str
 
 
 def make_access_token_payload(

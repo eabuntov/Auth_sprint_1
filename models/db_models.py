@@ -1,6 +1,6 @@
 # SQLAlchemy ORM Models
 # ---------------------------
-from pydantic import EmailStr
+
 from sqlalchemy import (
     Column,
     String,
@@ -74,17 +74,3 @@ class Subscription(Base):
     ends_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="subscriptions")
-
-
-class UserLogin(Base):
-    email: EmailStr
-    password: str
-
-
-class SubscriptionAssign(Base):
-    user_id: int
-    subscription_type: str
-
-
-# Alembic migration heads will be generated automatically when running `alembic revision --autogenerate`
-# End of file

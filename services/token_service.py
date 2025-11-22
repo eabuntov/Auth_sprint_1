@@ -1,13 +1,12 @@
 from typing import Optional
 from models.db_models import User
-from security.jwt import JWTHandler
+from security.jwt_routines import JWTHandler
 
 
 class TokenService:
     def __init__(self, jwt_handler: Optional[JWTHandler] = None):
         self.jwt = jwt_handler or JWTHandler()
 
-    # ---------------------- CREATE TOKENS ----------------------
     def create_access_token(
         self,
         user: User,
@@ -24,7 +23,6 @@ class TokenService:
     def create_refresh_token(self, user: User) -> str:
         return self.jwt.create_refresh_token(user_id=user.id)
 
-    # ---------------------- TOKEN PAIR ----------------------
     def create_token_pair(
         self,
         user: User,

@@ -17,7 +17,7 @@ class RoleRepository:
 
     async def list_all(self) -> list[Role]:
         result = await self.session.execute(select(Role))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def create(self, **kwargs) -> Role:
         role = Role(**kwargs)

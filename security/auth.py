@@ -1,12 +1,12 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import UUID
 
 from services.token_service import TokenService
 from services.user_service import UserService
 from dependencies import get_token_service, get_user_service
-from config import settings
 
-# ---------------------- AUTH BEARER ----------------------
+
 class AuthBearer(HTTPBearer):
     async def __call__(self, request):
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
@@ -21,7 +21,6 @@ class AuthBearer(HTTPBearer):
 auth_bearer = AuthBearer()
 
 
-# ---------------------- CURRENT USER EXTRACTION ----------------------
 async def get_current_user(
     token: str = Depends(auth_bearer),
     tokens: TokenService = Depends(get_token_service),
@@ -32,14 +31,13 @@ async def get_current_user(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload.")
 
-    user = await users.repo.get_by_id(int(user_id))
+    user = await users.repo.get_by_id(UUID(user_id))
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
 
     return user
 
 
-# ---------------------- PERMISSION CHECKS ----------------------
 async def require_permissions(required: list[str]):
     async def checker(
         current_user=Depends(get_current_user),
@@ -62,11 +60,10 @@ async def require_permissions(required: list[str]):
     return checker
 
 
-# ---------------------- SUBSCRIPTION CHECKS ----------------------
 async def require_subscription(sub_type: str):
     async def checker(
         current_user=Depends(get_current_user),
-        users: UserService = Depends(get_user_service)
+        users: UserService = Depends(get_user_service),
     ):
         subs = await users.get_user_subscriptions(current_user)
         if sub_type not in subs:

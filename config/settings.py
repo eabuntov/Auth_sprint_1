@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(..., env="DATABASE_URL")
 
     # ---------------------- REDIS ----------------------
-    REDIS_URL: str = Field("redis://localhost:6379/0", env="REDIS_URL")
+    REDIS_URL: str = Field(..., env="REDIS_URL")
 
     # ---------------------- JWT ----------------------
     JWT_ACCESS_SECRET: str = Field(..., env="JWT_ACCESS_SECRET")

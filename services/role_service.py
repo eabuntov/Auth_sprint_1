@@ -1,8 +1,8 @@
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy import UUID
 
-from models.db_models import User, Role
+from models.db_models import Role
 from repositories.roles_repository import RoleRepository
 from repositories.user_repository import UserRepository
 
@@ -12,13 +12,17 @@ class RoleService:
         self.role_repo = role_repo
         self.user_repo = user_repo
 
-    async def create_role(self, name: str, permissions: str, description: Optional[str] = None) -> Role:
+    async def create_role(
+        self, name: str, permissions: str, description: Optional[str] = None
+    ) -> Role:
         existing = await self.role_repo.get_by_name(name)
         if existing:
             raise ValueError("Role already exists")
-        return await self.role_repo.create(name=name, permissions=permissions, description=description)
+        return await self.role_repo.create(
+            name=name, permissions=permissions, description=description
+        )
 
-    async def list_roles(self) -> List[Role]:
+    async def list_roles(self) -> list[Role]:
         return await self.role_repo.list_all()
 
     async def assign_role(self, user_id: UUID, role_id: int):

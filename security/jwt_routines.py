@@ -11,8 +11,9 @@ class JWTHandler:
         self.access_exp = settings.ACCESS_TOKEN_EXPIRE_MINUTES
         self.refresh_exp = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
-    # ---------------------- CREATE TOKENS ----------------------
-    def create_access_token(self, user_id: int, extra_claims: dict | None = None) -> str:
+    def create_access_token(
+        self, user_id: int, extra_claims: dict | None = None
+    ) -> str:
         payload = {
             "sub": str(user_id),
             "iat": datetime.now(),
@@ -31,7 +32,6 @@ class JWTHandler:
         }
         return jwt.encode(payload, self.refresh_secret, algorithm=self.algorithm)
 
-    # ---------------------- VERIFY TOKENS ----------------------
     def verify_access(self, token: str) -> dict:
         return jwt.decode(token, self.access_secret, algorithms=[self.algorithm])
 
@@ -41,7 +41,6 @@ class JWTHandler:
             raise jwt.InvalidTokenError("Not a refresh token")
         return payload
 
-    # ---------------------- GENERAL ----------------------
     def decode(self, token: str, refresh: bool = False) -> dict:
         secret = self.refresh_secret if refresh else self.access_secret
         return jwt.decode(token, secret, algorithms=[self.algorithm])

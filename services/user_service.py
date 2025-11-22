@@ -1,8 +1,9 @@
 from typing import Optional
 
 from pydantic import EmailStr
+from sqlalchemy import UUID
 
-from models.db_models import User
+from models.db_models import User, Subscription
 from repositories.user_repository import UserRepository
 from security.password import PasswordHasher
 
@@ -13,10 +14,7 @@ class UserService:
         self.hasher = hasher
 
     async def register(
-        self,
-        email: EmailStr,
-        password: str,
-        full_name: Optional[str] = None
+        self, email: EmailStr, password: str, full_name: Optional[str] = None
     ):
         existing = await self.repo.get_by_email(email)
         if existing:
@@ -48,3 +46,12 @@ class UserService:
 
         await self.repo.update(user)
         return user
+
+    async def get_user_subscriptions(self, user_id: UUID) -> list[Subscription]:
+        """Return all active subscriptions for the given user."""
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        # Assuming User.subscriptions is a relationship loaded by ORM
+        return list(user.subscriptions)
