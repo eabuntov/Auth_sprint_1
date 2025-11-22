@@ -1,40 +1,55 @@
-from datetime import datetime, timedelta
-
-from jose import jwt, JWTError
-
+from typing import Optional
 from models.db_models import User
-from services.settings import settings
+from security.jwt import JWTHandler
 
 
 class TokenService:
+    def __init__(self, jwt_handler: Optional[JWTHandler] = None):
+        self.jwt = jwt_handler or JWTHandler()
+
+    # ---------------------- CREATE TOKENS ----------------------
     def create_access_token(
-        self, user: User, roles: list[str], entitlements: list[str]
-    ):
-        expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MIN)
-        payload = {
-            "sub": str(user.id),
+        self,
+        user: User,
+        roles: list[str],
+        entitlements: list[str],
+    ) -> str:
+        extra_claims = {
             "email": user.email,
             "roles": roles,
             "entitlements": entitlements,
-            "exp": expire,
         }
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGO)
-        return token
+        return self.jwt.create_access_token(user_id=user.id, extra_claims=extra_claims)
 
-    def create_refresh_token(self, user: User):
-        expire = datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        payload = {
-            "sub": str(user.id),
-            "type": "refresh",
-            "exp": expire,
-        }
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGO)
-        return token
+    def create_refresh_token(self, user: User) -> str:
+        return self.jwt.create_refresh_token(user_id=user.id)
 
-    def decode(self, token: str):
+    # ---------------------- TOKEN PAIR ----------------------
+    def create_token_pair(
+        self,
+        user: User,
+        roles: list[str],
+        entitlements: list[str],
+    ) -> dict:
+        """
+        Returns {"access_token": ..., "refresh_token": ...}
+        """
+        access = self.create_access_token(user, roles, entitlements)
+        refresh = self.create_refresh_token(user)
+        return {"access_token": access, "refresh_token": refresh}
+
+    # ---------------------- VERIFY / DECODE ----------------------
+    def decode_access(self, token: str) -> dict:
+        return self.jwt.verify_access(token)
+
+    def decode_refresh(self, token: str) -> dict:
+        return self.jwt.verify_refresh(token)
+
+    def decode_any(self, token: str) -> dict:
+        """
+        Automatically tries access first, then refresh.
+        """
         try:
-            return jwt.decode(
-                token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGO]
-            )
-        except JWTError:
-            return None
+            return self.jwt.verify_access(token)
+        except Exception:
+            return self.jwt.verify_refresh(token)

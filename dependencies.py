@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from db.session import async_session
 from repositories.user_repository import UserRepository
-from repositories.role_repository import RoleRepository
+from repositories.roles_repository import RoleRepository
 from repositories.subscription_repository import SubscriptionRepository
 from services.user_service import UserService
 from services.role_service import RoleService

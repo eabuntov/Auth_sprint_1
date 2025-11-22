@@ -1,33 +1,20 @@
 from datetime import datetime, timedelta
-from typing import Optional
-
-from sqlalchemy import UUID
-
 from models.db_models import Subscription
 from repositories.subscription_repository import SubscriptionRepository
-
 
 class SubscriptionService:
     def __init__(self, repo: SubscriptionRepository):
         self.repo = repo
 
-    async def add_subscription(
-        self,
-        user_id: UUID,
-        name: str,
-        entitlements: list[str],
-        duration_days: Optional[int],
-    ):
-        now = datetime.now()
-        ends = now + timedelta(days=duration_days) if duration_days else None
-        return await self.repo.create(
-            user_id=user_id,
-            name=name,
-            entitlements=",".join(entitlements),
-            duration_days=duration_days,
-            started_at=now,
-            ends_at=ends,
-        )
+    async def assign(self, user_id: int, subscription_type: str) -> Subscription:
+        # Here you can check if the user already has the subscription
+        return await self.repo.create(user_id=user_id, subscription_type=subscription_type, started_at=datetime.utcnow())
+
+    async def revoke(self, subscription_id: int):
+        sub = await self.repo.get_by_id(subscription_id)
+        if not sub:
+            raise ValueError("Subscription not found")
+        await self.repo.delete(sub)
 
     async def extend(self, subscription: Subscription, extra_days: int):
         if subscription.ends_at:

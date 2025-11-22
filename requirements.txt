@@ -5,3 +5,4 @@ alembic
 psycopg2
 bcrypt
 python-jose
+pydantic-settings
