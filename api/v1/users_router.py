@@ -1,0 +1,12 @@
+from fastapi import APIRouter, Depends
+
+users_router = APIRouter(prefix="/users", tags=["users"])
+
+@users_router.get("/me", response_model=UserRead)
+async def get_me(current=Depends(get_current_user)):
+    return current
+
+@users_router.post("/change-password")
+async def change_password(data: PasswordChange, current=Depends(get_current_user), users: UserService = Depends(get_user_service)):
+    await users.change_password(current, data.old_password, data.new_password)
+    return {"detail": "Password updated"}
