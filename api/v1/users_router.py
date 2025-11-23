@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from dependencies import get_user_service
-from models.models import UserRead, PasswordChange
+from models.models import UserRead, PasswordChange, StandardResponse
 from security.auth import get_current_user
 from services.user_service import UserService
 
@@ -13,7 +13,7 @@ async def get_me(current=Depends(get_current_user)):
     return current
 
 
-@users_router.post("/change-password")
+@users_router.post("/change-password", response_model=StandardResponse)
 async def change_password(
     data: PasswordChange,
     current=Depends(get_current_user),

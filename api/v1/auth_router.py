@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from dependencies import get_user_service, get_token_service
-from models.models import UserRead, UserCreate, UserLogin
+from models.models import UserRead, UserCreate, UserLogin, StandardResponse
 from services.user_service import UserService
 from services.token_service import TokenService
 
@@ -51,7 +51,7 @@ async def refresh_token(
     return tokens.create_token_pair(user, roles, entitlements)
 
 
-@auth_router.post("/logout")
+@auth_router.post("/logout", response_model=StandardResponse)
 async def logout(refresh_token: str, tokens: TokenService = Depends(get_token_service)):
     # Implement token revocation logic if needed
     return {"detail": "Logged out"}

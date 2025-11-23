@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from dependencies import get_subscription_service
-from models.models import SubscriptionAssign, SubscriptionRead
+from models.models import SubscriptionAssign, SubscriptionRead, StandardResponse
 from services.subscription_service import SubscriptionService
 
 subscriptions_router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -20,7 +20,7 @@ async def assign_subscription(
     return subscription
 
 
-@subscriptions_router.delete("/revoke/{sub_id}")
+@subscriptions_router.delete("/revoke/{sub_id}", response_model=StandardResponse)
 async def revoke_subscription(
     sub_id: int, subs: SubscriptionService = Depends(get_subscription_service)
 ):

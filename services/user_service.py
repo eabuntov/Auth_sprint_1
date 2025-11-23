@@ -55,3 +55,30 @@ class UserService:
 
         # Assuming User.subscriptions is a relationship loaded by ORM
         return list(user.subscriptions)
+
+    async def get_user_permissions(self, user_id: UUID) -> set[str]:
+        """
+        Aggregate permissions from:
+            - Role.permissions    (comma-separated)
+            - Subscription.entitlements  (comma-separated)
+        Returns a unique list of permissions.
+        """
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        permissions: set[str] = set()
+
+        # From roles
+        for role in user.roles:
+            if role.permissions:
+                perms = [p.strip() for p in role.permissions.split(",") if p.strip()]
+                permissions.update(perms)
+
+        # From subscriptions
+        for sub in user.subscriptions:
+            if sub.entitlements:
+                ents = [e.strip() for e in sub.entitlements.split(",") if e.strip()]
+                permissions.update(ents)
+
+        return permissions

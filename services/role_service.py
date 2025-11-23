@@ -8,7 +8,7 @@ from repositories.user_repository import UserRepository
 
 
 class RoleService:
-    def __init__(self, role_repo: RoleRepository, user_repo: UserRepository):
+    def __init__(self, role_repo: RoleRepository, user_repo: UserRepository = None):
         self.role_repo = role_repo
         self.user_repo = user_repo
 
@@ -25,7 +25,7 @@ class RoleService:
     async def list_roles(self) -> list[Role]:
         return await self.role_repo.list_all()
 
-    async def assign_role(self, user_id: UUID, role_id: int):
+    async def assign_role(self, user_id: UUID, role_id: UUID):
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise ValueError("User not found")
@@ -36,7 +36,7 @@ class RoleService:
             user.roles.append(role)
             await self.user_repo.update(user)
 
-    async def remove_role(self, user_id: UUID, role_id: int):
+    async def remove_role(self, user_id: UUID, role_id: UUID):
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise ValueError("User not found")

@@ -16,7 +16,7 @@ from sqlalchemy.orm import declarative_base, relationship
 import uuid
 from datetime import datetime
 
-from models import RoleType, SubscriptionStatus
+from models.models import RoleType, SubscriptionStatus
 
 Base = declarative_base()
 

@@ -1,6 +1,6 @@
 import jwt
 from datetime import datetime, timedelta
-from config import settings
+from config.settings import settings
 
 
 class JWTHandler:

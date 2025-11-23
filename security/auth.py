@@ -38,12 +38,12 @@ async def get_current_user(
     return user
 
 
-async def require_permissions(required: list[str]):
-    async def checker(
+def require_permissions(required: list[str]):
+    def checker(
         current_user=Depends(get_current_user),
         users: UserService = Depends(get_user_service),
     ):
-        permissions = await users.get_user_permissions(current_user)
+        permissions = users.get_user_permissions(current_user)
 
         # Superuser bypass
         if current_user.is_superuser:

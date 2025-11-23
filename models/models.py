@@ -1,37 +1,36 @@
 """
-Authentication & Authorization Service
---------------------------------------
-File: auth_service_models.py
+Сервис аутентификации и авторизации
+---------------------------------------
+Файл: auth_service_models.py
 
-This file contains:
-- High-level architecture notes for a JWT-based AuthZ service implemented with FastAPI.
-- Pydantic data models (request/response/DTOs) that the service API will expose.
+Этот файл содержит:
+- Заметки об архитектуре высокого уровня для сервиса AuthZ на основе JWT, реализованного с помощью FastAPI.
+- Модели данных Pydantic (запрос/ответ/DTO), которые API сервиса будет предоставлять.
 
-Architecture (brief)
+Архитектура (краткая)
 --------------------
-Components:
-  - FastAPI app exposing REST endpoints for authentication, token lifecycle, user management, and role management.
-  - Postgres (or another relational DB) for persistent storage of users, roles, subscriptions, and assignments.
-  - Redis for: token revocation list, short-lived caches, and session/refresh token rotation metadata.
-  - Optional: an internal JWKS endpoint that exposes the public key (if using asymmetric JWTs) so other services can verify tokens without contacting the auth service on each request.
-  - Other services (cinema public API, admin panel) verify access tokens locally (via JWKS or shared secret) and call the auth service for user/role introspection if needed.
+Компоненты:
+- Приложение FastAPI, предоставляющее конечные точки REST для аутентификации, жизненного цикла токенов, управления пользователями и ролями.
+- Postgres (или другая реляционная база данных) для постоянного хранения пользователей, ролей, подписок и назначений.
+- Redis для: списка отозванных токенов, краткосрочного кэширования и метаданных ротации токенов сеанса/обновления.
+- Дополнительно: внутренняя конечная точка JWKS, предоставляющая открытый ключ (при использовании асимметричных JWT), чтобы другие сервисы могли проверять токены без обращения к службе аутентификации. сервис при каждом запросе.
+– Другие сервисы (публичный API кинотеатра, панель администратора) проверяют токены доступа локально (через JWKS или общий секрет) и при необходимости вызывают службу авторизации для анализа пользователя/роли.
 
-Key design choices:
-  - Access tokens (JWTs) are short-lived (e.g. 5-15 minutes). Refresh tokens are long-lived (days/weeks) and stored server-side (or their rotation state is tracked) to allow revocation.
-  - Use token rotation for refresh tokens to limit replay attacks. Store refresh token identifiers (jti) in Redis with state (valid/revoked).
-  - Roles are collections of permissions. Users get roles via assignments. Roles CRUD endpoints exist and are protected to admins.
-  - Anonymous users exist implicitly: when no auth header provided, treat user as `anonymous` role with minimal permissions.
-  - Superuser flag or role grants all rights.
-  - Subscriptions are first-class objects that grant additional permissions/entitlements (e.g. access to certain movie content). Subscription evaluation may be done by other services using token claims (e.g. `entitlements` array) or via an introspection endpoint.
+Ключевые решения:
+– Токены доступа (JWT) имеют короткий срок жизни (например, 5–15 минут). Токены обновления имеют длительный срок жизни (дни/недели) и хранятся на стороне сервера (или отслеживается их состояние ротации), что позволяет их отзывать.
+– Используйте ротацию токенов обновления для ограничения атак повторного воспроизведения. Идентификаторы токенов обновления (JTI) следует хранить в Redis с указанием состояния (действителен/отозван).
+– Роли представляют собой наборы разрешений. Пользователи получают роли через назначения. Конечные точки CRUD для ролей существуют и защищены от администраторов.
+– Анонимные пользователи существуют неявно: если заголовок авторизации не указан, пользователь рассматривается как «анонимная» роль с минимальными правами.
+– Флаг или роль суперпользователя предоставляют все Права.
+- Подписки — это объекты первого класса, предоставляющие дополнительные разрешения/права (например, доступ к определённому контенту фильмов). Оценка подписки может осуществляться другими сервисами с использованием токенов-заявок (например, массива `entitlements`) или через конечную точку интроспекции.
 
-Security notes (short):
-  - Use HTTPS for all traffic.
-  - Store password hashes (bcrypt/argon2) only.
-  - Keep refresh token identifiers in Redis, not raw refresh tokens; issue a secure opaque refresh token bound to that id.
-  - Rotate keys and support key identifiers (kid) in JWT headers when using asymmetric signing.
+Примечания по безопасности (краткие):
+- Используйте HTTPS для всего трафика.
+- Храните только хеши паролей (bcrypt/argon2).
+- Храните идентификаторы токенов обновления в Redis, а не необработанные токены обновления; выдавайте безопасный непрозрачный токен обновления, привязанный к этому идентификатору.
+- Ротация ключей и поддержка идентификаторов ключей (kid) в заголовках JWT при использовании асимметричной подписи.
 
-
-Pydantic models
+Модели Pydantic
 ---------------
 """
 
@@ -44,14 +43,12 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class Permission(str, Enum):
-    # general app permissions (extend as needed)
     READ_PUBLIC_CONTENT = "read:public_content"
     WATCH_MOVIES = "watch:movies"
     MANAGE_USERS = "manage:users"
     MANAGE_ROLES = "manage:roles"
     MANAGE_SUBSCRIPTIONS = "manage:subscriptions"
     VIEW_ADMIN_PANEL = "view:admin_panel"
-    # add app specific permissions below
 
 
 class RoleType(str, Enum):
@@ -139,7 +136,7 @@ class PasswordChangeRequest(BaseModel):
 class RoleBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    permissions: set[Permission] = set()
+    permissions: str = "" # set[Permission] = set()
     type: RoleType = RoleType.DEFAULT
 
 
@@ -257,3 +254,10 @@ def make_access_token_payload(
         scopes=[],
         entitlements=entitlements,
     )
+
+class StandardResponse(BaseModel):
+    detail: str
+
+class UserRoleInput(BaseModel):
+    role_id: UUID
+    user_id: UUID

@@ -1,0 +1,90 @@
+services:
+  auth_db:
+    image: postgres:17.6-alpine
+    container_name: auth-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - "${DB_PORT}"
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        tag: "theatre-db"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  auth_app:
+    container_name: auth-app
+    build:
+      context: ./
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      - app-network
+    volumes:
+      - ./:/opt/app
+    depends_on:
+      - auth_redis
+      - auth_db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"     # rotate when a log reaches 10MB
+        max-file: "3"       # keep last 3 files
+        tag: "auth_app"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://auth_app:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  auth_redis:
+    image: redis:8.2.2-alpine
+    container_name: auth-redis
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - auth_redis_data:/data
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        tag: "redis"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  auth_db_data:
+  auth_redis_data:
+
+networks:
+  app-network:
+    driver: bridge

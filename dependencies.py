@@ -1,23 +1,45 @@
 from typing import AsyncGenerator
 
-from aioredis import Redis
+from redis import Redis
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession, async_session
 
 from repositories.user_repository import UserRepository
 from repositories.roles_repository import RoleRepository
 from repositories.subscription_repository import SubscriptionRepository
+from security.password import PasswordHasher
 from services.user_service import UserService
 from services.role_service import RoleService
 from services.subscription_service import SubscriptionService
 from services.token_service import TokenService
 from security.jwt_routines import JWTHandler
-from security.password import PasswordHasher
+
+
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker,
+)
 from config.settings import settings
 
 
+# Create PostgreSQL async engine
+engine = create_async_engine(
+    settings.database_url,
+    echo=bool(settings.db_echo),
+)
+
+# Session factory
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    expire_on_commit=False,
+    class_=AsyncSession,
+)
+
+
+# Dependency for FastAPI
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         yield session
 
 
