@@ -1,4 +1,5 @@
 """Initial schema with roles, users, subscriptions, user_roles, enum types"""
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -26,9 +27,7 @@ def upgrade():
     roletype.create(op.get_bind(), checkfirst=True)
 
     subscriptionstatus = postgresql.ENUM(
-        "ACTIVE", "CANCELLED", "EXPIRED",
-        name="subscriptionstatus",
-        create_type=True
+        "ACTIVE", "CANCELLED", "EXPIRED", name="subscriptionstatus", create_type=True
     )
     subscriptionstatus.create(op.get_bind(), checkfirst=True)
 
@@ -46,8 +45,14 @@ def upgrade():
         sa.Column("name", sa.String(), unique=True, nullable=False),
         sa.Column("description", sa.String()),
         sa.Column("permissions", sa.String()),
-        sa.Column("type", sa.Enum("DEFAULT", "SYSTEM", "ADMIN", name="roletype"), server_default="DEFAULT"),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")),
+        sa.Column(
+            "type",
+            sa.Enum("DEFAULT", "SYSTEM", "ADMIN", name="roletype"),
+            server_default="DEFAULT",
+        ),
+        sa.Column(
+            "created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")
+        ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True)),
     )
 
@@ -67,7 +72,9 @@ def upgrade():
         sa.Column("password_hash", sa.String(), nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default="TRUE"),
         sa.Column("is_superuser", sa.Boolean(), server_default="FALSE"),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")
+        ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True)),
     )
 
@@ -76,8 +83,18 @@ def upgrade():
     # -------------------------
     op.create_table(
         "user_roles",
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-        sa.Column("role_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column(
+            "role_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("roles.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
     )
 
     # -------------------------
@@ -91,14 +108,24 @@ def upgrade():
             primary_key=True,
             server_default=sa.text("uuid_generate_v4()"),
         ),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE")),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+        ),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String()),
         sa.Column("entitlements", sa.String()),
-        sa.Column("status", sa.Enum("ACTIVE", "CANCELLED", "EXPIRED", name="subscriptionstatus"), server_default="ACTIVE"),
+        sa.Column(
+            "status",
+            sa.Enum("ACTIVE", "CANCELLED", "EXPIRED", name="subscriptionstatus"),
+            server_default="ACTIVE",
+        ),
         sa.Column("price_cents", sa.Integer()),
         sa.Column("duration_days", sa.Integer()),
-        sa.Column("started_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")),
+        sa.Column(
+            "started_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("NOW()")
+        ),
         sa.Column("ends_at", sa.TIMESTAMP(timezone=True)),
     )
     op.create_table(

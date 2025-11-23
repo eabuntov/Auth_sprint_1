@@ -24,7 +24,12 @@ Base = declarative_base()
 user_roles = Table(
     "user_roles",
     Base.metadata,
-    Column("user_id", PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "user_id",
+        PGUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
     Column("role_id", PGUUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True),
 )
 
@@ -81,7 +86,9 @@ class LoginHistory(Base):
     __tablename__ = "login_history"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)

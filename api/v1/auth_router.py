@@ -1,10 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from redis import Redis
 from sqlalchemy import UUID
-from dependencies import get_user_service, get_token_service, get_login_history_service, require_authenticated_user, \
-    get_redis
+from dependencies import (
+    get_user_service,
+    get_token_service,
+    get_login_history_service,
+    require_authenticated_user,
+    get_redis,
+)
 from models.db_models import User
-from models.models import UserRead, UserCreate, UserLogin, StandardResponse, LoginHistoryRead
+from models.models import (
+    UserRead,
+    UserCreate,
+    UserLogin,
+    StandardResponse,
+    LoginHistoryRead,
+)
 from services.login_history_service import LoginHistoryService
 from services.user_service import UserService
 from services.token_service import TokenService
@@ -33,9 +44,7 @@ async def login_user(
 
     # store login event
     await history.record_login(
-        user.id,
-        request.client.host,
-        request.headers.get("User-Agent")
+        user.id, request.client.host, request.headers.get("User-Agent")
     )
 
     return tokens.create_token_pair(user)
@@ -86,11 +95,7 @@ async def refresh_token(
     access, refresh = tokens.create_token_pair(user, roles, entitlements)
 
     # 5. Store new refresh token in Redis
-    await redis.setex(
-        f"refresh:{refresh}",
-        tokens.refresh_expire_seconds,
-        str(user.id)
-    )
+    await redis.setex(f"refresh:{refresh}", tokens.refresh_expire_seconds, str(user.id))
 
     # Optional: remove old refresh token
     await redis.delete(key)
@@ -109,17 +114,12 @@ async def logout(
     deleted = await redis.delete(key)
 
     if deleted == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Token already revoked or invalid"
-        )
+        raise HTTPException(status_code=400, detail="Token already revoked or invalid")
 
     return {"detail": "Logged out"}
 
-@auth_router.get(
-    "/login-history",
-    response_model=list[LoginHistoryRead]
-)
+
+@auth_router.get("/login-history", response_model=list[LoginHistoryRead])
 async def get_login_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),

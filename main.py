@@ -9,8 +9,10 @@ app = FastAPI()
 with open("api/v1/openapi_ru.json", "r", encoding="utf-8") as f:
     custom_openapi_schema = json.load(f)
 
+
 def custom_openapi():
     return custom_openapi_schema
+
 
 app.openapi = custom_openapi
 

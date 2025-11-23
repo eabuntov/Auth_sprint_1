@@ -47,7 +47,6 @@ class UserService:
 
         return user
 
-
     async def authenticate(self, email: EmailStr, password: str):
         user = await self.repo.get_by_email(email)
         if not user:

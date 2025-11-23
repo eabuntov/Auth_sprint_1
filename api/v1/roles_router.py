@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from dependencies import get_role_service
-from models.models import RoleRead, RoleCreate, StandardResponse, UserRoleInput, RoleType
+from models.models import (
+    RoleRead,
+    RoleCreate,
+    StandardResponse,
+    UserRoleInput,
+    RoleType,
+)
 from security.auth import require_permissions, role_types_required
 from services.role_service import RoleService
 
@@ -25,7 +31,8 @@ async def list_roles(roles: RoleService = Depends(get_role_service)):
 
 @roles_router.patch("/{role_id}/assign/{user_id}", response_model=None)
 @role_types_required(allowed_types=[RoleType.ADMIN])
-async def assign_role(user_role: UserRoleInput, roles: RoleService = Depends(get_role_service)
+async def assign_role(
+    user_role: UserRoleInput, roles: RoleService = Depends(get_role_service)
 ):
     try:
         await roles.assign_role(user_id=user_role.user_id, role_id=user_role.role_id)

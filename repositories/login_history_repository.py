@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, UUID
 from models.db_models import LoginHistory
 
+
 class LoginHistoryRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -15,7 +16,6 @@ class LoginHistoryRepository:
         self.session.add(record)
         await self.session.flush()
         return record
-
 
     async def get_by_user(self, user_id: UUID, limit: int, offset: int):
         stmt = (

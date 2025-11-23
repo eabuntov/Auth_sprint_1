@@ -17,8 +17,6 @@ from services.token_service import TokenService
 from security.jwt_routines import JWTHandler
 
 
-
-
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -95,9 +93,13 @@ def get_token_service(
 ) -> TokenService:
     return TokenService(JWTHandler())
 
-def get_login_history_service(session: AsyncSession = Depends(get_session)) -> LoginHistoryService:
+
+def get_login_history_service(
+    session: AsyncSession = Depends(get_session),
+) -> LoginHistoryService:
     repo = LoginHistoryRepository(session)
     return LoginHistoryService(repo)
+
 
 auth_scheme = HTTPBearer(auto_error=False)
 

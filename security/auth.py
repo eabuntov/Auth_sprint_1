@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import UUID
 
-from models.db_models import Role, User
+from models.db_models import User
 from models.models import RoleType
 from services.token_service import TokenService
 from services.user_service import UserService
@@ -76,11 +76,13 @@ async def require_subscription(sub_type: str):
 
     return checker
 
+
 def role_types_required(allowed_types: list[RoleType]):
     """
     Restrict route access to users that have at least one role
     with a type from allowed_types.
     """
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -106,4 +108,5 @@ def role_types_required(allowed_types: list[RoleType]):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
