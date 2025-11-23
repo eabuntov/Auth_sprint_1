@@ -1,7 +1,11 @@
+from functools import wraps
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import UUID
 
+from models.db_models import Role, User
+from models.models import RoleType
 from services.token_service import TokenService
 from services.user_service import UserService
 from dependencies import get_token_service, get_user_service
@@ -71,3 +75,35 @@ async def require_subscription(sub_type: str):
         return True
 
     return checker
+
+def role_types_required(allowed_types: list[RoleType]):
+    """
+    Restrict route access to users that have at least one role
+    with a type from allowed_types.
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # FastAPI injects current_user explicitly through dependencies
+            user: User = kwargs.get("current_user")
+
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication required",
+                )
+
+            # Extract role types of this user
+            user_role_types = {role.type for role in getattr(user, "roles", [])}
+
+            # Check for intersection with allowed types
+            if not any(role_type in user_role_types for role_type in allowed_types):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have permission to access this resource",
+                )
+
+            return await func(*args, **kwargs)
+
+        return wrapper
+    return decorator
