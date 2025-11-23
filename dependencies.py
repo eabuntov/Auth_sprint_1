@@ -65,8 +65,18 @@ def get_subscription_repo(
     return SubscriptionRepository(session)
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
-    return UserService(repo, PasswordHasher())
+def get_user_service(
+    session: AsyncSession = Depends(get_session),
+):
+    user_repo = UserRepository(session)
+    role_repo = RoleRepository(session)
+    hasher = PasswordHasher()
+    return UserService(
+        repo=user_repo,
+        hasher=hasher,
+        role_repo=role_repo,
+        default_role_name="user",
+    )
 
 
 def get_role_service(repo: RoleRepository = Depends(get_role_repo)) -> RoleService:
