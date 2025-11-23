@@ -17,8 +17,6 @@ from services.token_service import TokenService
 from security.jwt_routines import JWTHandler
 
 
-
-
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -29,7 +27,7 @@ from config.settings import settings
 
 # Create PostgreSQL async engine
 engine = create_async_engine(
-    settings.database_url,
+    settings.DATABASE_URL,
     echo=bool(settings.db_echo),
 )
 
@@ -65,8 +63,18 @@ def get_subscription_repo(
     return SubscriptionRepository(session)
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
-    return UserService(repo, PasswordHasher())
+def get_user_service(
+    session: AsyncSession = Depends(get_session),
+):
+    user_repo = UserRepository(session)
+    role_repo = RoleRepository(session)
+    hasher = PasswordHasher()
+    return UserService(
+        repo=user_repo,
+        hasher=hasher,
+        role_repo=role_repo,
+        default_role_name="user",
+    )
 
 
 def get_role_service(repo: RoleRepository = Depends(get_role_repo)) -> RoleService:
@@ -85,9 +93,13 @@ def get_token_service(
 ) -> TokenService:
     return TokenService(JWTHandler())
 
-def get_login_history_service(session: AsyncSession = Depends(get_session)) -> LoginHistoryService:
+
+def get_login_history_service(
+    session: AsyncSession = Depends(get_session),
+) -> LoginHistoryService:
     repo = LoginHistoryRepository(session)
     return LoginHistoryService(repo)
+
 
 auth_scheme = HTTPBearer(auto_error=False)
 

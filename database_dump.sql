@@ -65,6 +65,16 @@ CREATE TABLE subscriptions (
     ends_at TIMESTAMPTZ
 );
 
+CREATE TABLE login_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    ip_address VARCHAR,
+    user_agent VARCHAR,
+
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ------------------------------------------------------------
 -- MOCK DATA
 ------------------------------------------------------------
@@ -74,6 +84,12 @@ CREATE TABLE subscriptions (
 ------------------------------------------------------------
 INSERT INTO roles (id, name, description, permissions, type)
 VALUES
+    (
+        '00000000-0000-0000-0000-000000000001',
+         'user', 'Basic user role',
+         'read:public_content,watch:movies',
+         'DEFAULT'
+    ),
     (
         '00000000-0000-0000-0000-000000000001',
         'user',

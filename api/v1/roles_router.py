@@ -1,9 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import UUID
 
 from dependencies import get_role_service
-from models.models import RoleRead, RoleCreate, StandardResponse, UserRoleInput
-from security.auth import require_permissions
+from models.models import (
+    RoleRead,
+    RoleCreate,
+    StandardResponse,
+    UserRoleInput,
+    RoleType,
+)
+from security.auth import require_permissions, role_types_required
 from services.role_service import RoleService
 
 roles_router = APIRouter(prefix="/roles", tags=["roles"])
@@ -14,6 +19,7 @@ roles_router = APIRouter(prefix="/roles", tags=["roles"])
     response_model=RoleRead,
     dependencies=[Depends(require_permissions(["manage_roles"]))],
 )
+@role_types_required(allowed_types=[RoleType.ADMIN])
 async def create_role(data: RoleCreate, roles: RoleService = Depends(get_role_service)):
     return await roles.create_role(data.name, data.permissions, data.description)
 
@@ -24,7 +30,9 @@ async def list_roles(roles: RoleService = Depends(get_role_service)):
 
 
 @roles_router.patch("/{role_id}/assign/{user_id}", response_model=None)
-async def assign_role(user_role: UserRoleInput, roles: RoleService = Depends(get_role_service)
+@role_types_required(allowed_types=[RoleType.ADMIN])
+async def assign_role(
+    user_role: UserRoleInput, roles: RoleService = Depends(get_role_service)
 ):
     try:
         await roles.assign_role(user_id=user_role.user_id, role_id=user_role.role_id)
@@ -34,6 +42,7 @@ async def assign_role(user_role: UserRoleInput, roles: RoleService = Depends(get
 
 
 @roles_router.delete("/{role_id}/remove/{user_id}", response_model=StandardResponse)
+@role_types_required(allowed_types=[RoleType.ADMIN])
 async def remove_role(
     user_role: UserRoleInput, roles: RoleService = Depends(get_role_service)
 ):

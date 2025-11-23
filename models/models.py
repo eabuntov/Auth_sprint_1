@@ -136,7 +136,7 @@ class PasswordChangeRequest(BaseModel):
 class RoleBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    permissions: str = "" # set[Permission] = set()
+    permissions: str = ""  # set[Permission] = set()
     type: RoleType = RoleType.DEFAULT
 
 
@@ -255,12 +255,15 @@ def make_access_token_payload(
         entitlements=entitlements,
     )
 
+
 class StandardResponse(BaseModel):
     detail: str
+
 
 class UserRoleInput(BaseModel):
     role_id: UUID
     user_id: UUID
+
 
 class LoginHistoryRead(BaseModel):
     id: UUID

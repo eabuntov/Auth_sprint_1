@@ -1,9 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from redis import Redis
 from sqlalchemy import UUID
-
-from dependencies import get_user_service, get_token_service, get_login_history_service, require_authenticated_user
+from dependencies import (
+    get_user_service,
+    get_token_service,
+    get_login_history_service,
+    require_authenticated_user,
+    get_redis,
+)
 from models.db_models import User
-from models.models import UserRead, UserCreate, UserLogin, StandardResponse, LoginHistoryRead
+from models.models import (
+    UserRead,
+    UserCreate,
+    UserLogin,
+    StandardResponse,
+    LoginHistoryRead,
+)
 from services.login_history_service import LoginHistoryService
 from services.user_service import UserService
 from services.token_service import TokenService
@@ -32,9 +44,7 @@ async def login_user(
 
     # store login event
     await history.record_login(
-        user.id,
-        request.client.host,
-        request.headers.get("User-Agent")
+        user.id, request.client.host, request.headers.get("User-Agent")
     )
 
     return tokens.create_token_pair(user)
@@ -42,30 +52,84 @@ async def login_user(
 
 @auth_router.post("/refresh")
 async def refresh_token(
-    refresh_token: str, tokens: TokenService = Depends(get_token_service)
+    refresh_token: str,
+    tokens: TokenService = Depends(get_token_service),
+    redis: Redis = Depends(get_redis),
 ):
+    # 1. Validate / decode refresh JWT
     try:
         payload = tokens.decode_refresh(refresh_token)
         user_id = UUID(payload.get("sub"))
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
         )
-    # Here you should fetch user and roles/entitlements from DB
-    user = await get_user_service().repo.get_by_id(user_id)
+
+    # 2. Check that refresh token is not revoked
+    key = f"refresh:{refresh_token}"
+    exists = await redis.get(key)
+
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token revoked or expired",
+        )
+
+    # 3. Load user + roles + entitlements
+    user_service = get_user_service()
+    user = await user_service.repo.get_by_id(user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
     roles = [role.name for role in getattr(user, "roles", [])]
+
+    # If entitlements come from subscription or user field:
     entitlements = getattr(user, "entitlements", [])
-    return tokens.create_token_pair(user, roles, entitlements)
+
+    # 4. Issue new tokens
+    access, refresh = tokens.create_token_pair(user, roles, entitlements)
+
+    # 5. Store new refresh token in Redis
+    await redis.setex(f"refresh:{refresh}", tokens.refresh_expire_seconds, str(user.id))
+
+    # Optional: remove old refresh token
+    await redis.delete(key)
+
+    return {"access_token": access, "refresh_token": refresh}
 
 
 @auth_router.post("/logout", response_model=StandardResponse)
-async def logout(refresh_token: str, tokens: TokenService = Depends(get_token_service)):
-    # Implement token revocation logic if needed
+async def logout(
+    refresh_token: str,
+    redis: Redis = Depends(get_redis),
+):
+    """Revoke refresh token by removing it from Redis."""
+    key = f"refresh:{refresh_token}"
+
+    deleted = await redis.delete(key)
+
+    if deleted == 0:
+        raise HTTPException(status_code=400, detail="Token already revoked or invalid")
+
     return {"detail": "Logged out"}
+
 
 @auth_router.get("/login-history", response_model=list[LoginHistoryRead])
 async def get_login_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
     current_user: User = Depends(require_authenticated_user),
     history: LoginHistoryService = Depends(get_login_history_service),
 ):
-    return await history.get_user_history(current_user.id)
+    offset = (page - 1) * page_size
+
+    return await history.get_user_history(
+        user_id=current_user.id,
+        limit=page_size,
+        offset=offset,
+    )

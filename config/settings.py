@@ -3,7 +3,7 @@ from pydantic import Field, ConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = ConfigDict(extra='allow', env_file=".env")
+    model_config = ConfigDict(extra="allow", env_file=".env")
     # ---------------------- JWT ----------------------
     JWT_ACCESS_SECRET: str = Field(..., env="JWT_ACCESS_SECRET")
     JWT_REFRESH_SECRET: str = Field(..., env="JWT_REFRESH_SECRET")
@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(False, env="DEBUG")
 
     REDIS_URL: str = Field(..., env="REDIS-HOST")
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
     PROJECT_NAME: str = "Auth Service"
+
 
 settings = Settings()
