@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(False, env="DEBUG")
 
     REDIS_URL: str = Field(..., env="REDIS-HOST")
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
     PROJECT_NAME: str = "Auth Service"
 
 settings = Settings()
