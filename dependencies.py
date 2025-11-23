@@ -29,7 +29,7 @@ from config.settings import settings
 
 # Create PostgreSQL async engine
 engine = create_async_engine(
-    settings.database_url,
+    settings.DATABASE_URL,
     echo=bool(settings.db_echo),
 )
 

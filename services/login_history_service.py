@@ -14,5 +14,5 @@ class LoginHistoryService:
             user_agent=agent
         )
 
-    async def get_user_history(self, user_id: UUID):
-        return await self.repo.get_by_user(user_id)
+    async def get_user_history(self, user_id: UUID, limit: int, offset: int):
+        return await self.repo.get_by_user(user_id=user_id, limit=limit, offset=offset)

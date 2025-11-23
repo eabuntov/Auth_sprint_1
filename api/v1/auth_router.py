@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy import UUID
 
 from dependencies import get_user_service, get_token_service, get_login_history_service, require_authenticated_user
@@ -63,9 +63,20 @@ async def logout(refresh_token: str, tokens: TokenService = Depends(get_token_se
     # Implement token revocation logic if needed
     return {"detail": "Logged out"}
 
-@auth_router.get("/login-history", response_model=list[LoginHistoryRead])
+@auth_router.get(
+    "/login-history",
+    response_model=list[LoginHistoryRead]
+)
 async def get_login_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
     current_user: User = Depends(require_authenticated_user),
     history: LoginHistoryService = Depends(get_login_history_service),
 ):
-    return await history.get_user_history(current_user.id)
+    offset = (page - 1) * page_size
+
+    return await history.get_user_history(
+        user_id=current_user.id,
+        limit=page_size,
+        offset=offset,
+    )
