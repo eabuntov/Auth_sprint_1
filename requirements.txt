@@ -1,0 +1,14 @@
+pydantic
+fastapi
+sqlalchemy[asyncio]
+asyncpg
+alembic
+psycopg2-binary
+bcrypt
+python-jose
+pydantic-settings
+pyjwt
+redis
+uvicorn
+setuptools
+pydantic[email]
