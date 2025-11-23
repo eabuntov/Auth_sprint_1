@@ -12,7 +12,7 @@ with open("api/v1/openapi.json", "r", encoding="utf-8") as f:
 def custom_openapi():
     return custom_openapi_schema
 
-app.openapi = custom_openapi
+# app.openapi = custom_openapi
 
 app.include_router(api_router)
 

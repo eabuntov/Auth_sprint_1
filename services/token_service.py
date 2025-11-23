@@ -1,4 +1,6 @@
 from typing import Optional
+
+from config.settings import settings
 from models.db_models import User
 from security.jwt_routines import JWTHandler
 
@@ -6,6 +8,7 @@ from security.jwt_routines import JWTHandler
 class TokenService:
     def __init__(self, jwt_handler: Optional[JWTHandler] = None):
         self.jwt = jwt_handler or JWTHandler()
+        self.refresh_expire_seconds = settings.refresh_expire_seconds
 
     def create_access_token(
         self,
