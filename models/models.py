@@ -261,3 +261,12 @@ class StandardResponse(BaseModel):
 class UserRoleInput(BaseModel):
     role_id: UUID
     user_id: UUID
+
+class LoginHistoryRead(BaseModel):
+    id: UUID
+    timestamp: datetime
+    ip_address: str | None
+    user_agent: str | None
+
+    class Config:
+        from_attributes = True

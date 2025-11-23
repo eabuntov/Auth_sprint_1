@@ -1,17 +1,21 @@
 from typing import AsyncGenerator
 
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis import Redis
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 
+from repositories.login_history_repository import LoginHistoryRepository
 from repositories.user_repository import UserRepository
 from repositories.roles_repository import RoleRepository
 from repositories.subscription_repository import SubscriptionRepository
 from security.password import PasswordHasher
+from services.login_history_service import LoginHistoryService
 from services.user_service import UserService
 from services.role_service import RoleService
 from services.subscription_service import SubscriptionService
 from services.token_service import TokenService
 from security.jwt_routines import JWTHandler
+
 
 
 
@@ -61,7 +65,6 @@ def get_subscription_repo(
     return SubscriptionRepository(session)
 
 
-# ---------------------- SERVICES ----------------------
 def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
     return UserService(repo, PasswordHasher())
 
@@ -80,8 +83,47 @@ def get_token_service(
     redis: Redis = Depends(get_redis),
     user_repo: UserRepository = Depends(get_user_repo),
 ) -> TokenService:
-    return TokenService(JWTHandler(), redis, user_repo)
+    return TokenService(JWTHandler())
+
+def get_login_history_service(session: AsyncSession = Depends(get_session)) -> LoginHistoryService:
+    repo = LoginHistoryRepository(session)
+    return LoginHistoryService(repo)
+
+auth_scheme = HTTPBearer(auto_error=False)
 
 
-# ---------------------- AUTHENTICATION ----------------------
-from security.auth import AuthBearer, get_current_user, require_permissions  # noqa
+async def require_authenticated_user(
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    tokens: TokenService = Depends(get_token_service),
+    users: UserService = Depends(get_user_service),
+):
+    """
+    Ensures the user is authenticated by verifying the JWT access token.
+    Returns the User instance if valid.
+    """
+
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing",
+        )
+
+    token = credentials.credentials
+
+    payload = tokens.verify_access(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+    user_id = payload.get("sub")
+
+    user = await users.repo.get_by_id(user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+
+    return user
