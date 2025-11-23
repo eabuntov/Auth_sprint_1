@@ -1,0 +1,781 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0",
+    "description": "API сервиса авторизации и управления ролями/подписками.\nСодержит методы регистрации, логина, обновления токена, выходя из системы, работы с ролями и подписками."
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Регистрация пользователя",
+        "description": "Создаёт нового пользователя в системе.\nВозвращает данные созданного пользователя.",
+        "operationId": "register_user_auth_register_post",
+        "requestBody": {
+          "description": "Данные для регистрации нового пользователя.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Успешная регистрация.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации введённых данных.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Авторизация пользователя",
+        "description": "Проверяет email и пароль и создаёт пару токенов: access и refresh.",
+        "operationId": "login_user_auth_login_post",
+        "requestBody": {
+          "description": "Учётные данные пользователя.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserLogin" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Успешная авторизация и выдача токена."
+          },
+          "422": {
+            "description": "Ошибка валидации.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/auth/refresh": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Обновление токена",
+        "description": "Принимает refresh token и выдаёт новую пару токенов.",
+        "operationId": "refresh_token_auth_refresh_post",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "query",
+            "required": true,
+            "description": "Refresh-токен пользователя.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Новый access/refresh токены выданы." },
+          "422": {
+            "description": "Ошибка валидации.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Выход пользователя",
+        "description": "Помечает refresh token как недействительный.",
+        "operationId": "logout_auth_logout_post",
+        "parameters": [
+          {
+            "name": "refresh_token",
+            "in": "query",
+            "required": true,
+            "description": "Refresh-токен, который нужно инвалидировать.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно разлогинен.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StandardResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/auth/login-history": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "История логинов пользователя",
+        "description": "Возвращает список авторизаций текущего пользователя: IP, User-Agent, время входа.",
+        "operationId": "get_login_history_auth_login_history_get",
+        "responses": {
+          "200": {
+            "description": "История логинов пользователя.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/LoginHistoryRead" }
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+
+    "/users/me": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Данные текущего пользователя",
+        "description": "Возвращает информацию о пользователе по access token.",
+        "operationId": "get_me_users_me_get",
+        "security": [{ "AuthBearer": [] }],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "required": true,
+            "description": "Технический объект запроса (FastAPI Request)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о пользователе.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserRead" }
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/users/change-password": {
+      "post": {
+        "tags": ["users"],
+        "summary": "Смена пароля",
+        "description": "Пользователь вводит старый пароль и новый. Старый проверяется, новый — сохраняется.",
+        "operationId": "change_password_users_change_password_post",
+        "security": [{ "AuthBearer": [] }],
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "required": true,
+            "description": "Объект запроса (FastAPI Request)."
+          }
+        ],
+        "requestBody": {
+          "description": "Данные для смены пароля.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PasswordChange" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пароль успешно изменён.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StandardResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Ошибка валидации данных.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/roles/": {
+      "post": {
+        "tags": ["roles"],
+        "summary": "Создать новую роль",
+        "description": "Администратор может создавать роли и назначать им permissions.",
+        "operationId": "create_role_roles__post",
+        "security": [{ "AuthBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "description": "Описание новой роли.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RoleCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Роль успешно создана.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RoleRead" }
+              }
+            }
+          }
+        }
+      },
+
+      "get": {
+        "tags": ["roles"],
+        "summary": "Список всех ролей",
+        "description": "Возвращает все роли, доступные в системе.",
+        "operationId": "list_roles_roles__get",
+        "responses": {
+          "200": {
+            "description": "Список ролей.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RoleRead" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/roles/{role_id}/assign/{user_id}": {
+      "patch": {
+        "tags": ["roles"],
+        "summary": "Назначить роль пользователю",
+        "description": "Добавляет существующую роль заданному пользователю.",
+        "operationId": "assign_role_roles__role_id__assign__user_id__patch",
+        "requestBody": {
+          "required": true,
+          "description": "Данные о назначении роли.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserRoleInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Роль назначена пользователю." }
+        }
+      }
+    },
+
+    "/roles/{role_id}/remove/{user_id}": {
+      "delete": {
+        "tags": ["roles"],
+        "summary": "Удалить роль у пользователя",
+        "description": "Снимает указанную роль с пользователя.",
+        "operationId": "remove_role_roles__role_id__remove__user_id__delete",
+        "requestBody": {
+          "required": true,
+          "description": "Данные о пользователе и роли.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserRoleInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Роль успешно удалена.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StandardResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/subscriptions/assign": {
+      "post": {
+        "tags": ["subscriptions"],
+        "summary": "Назначить подписку",
+        "description": "Назначает новую подписку пользователю.",
+        "operationId": "assign_subscription_subscriptions_assign_post",
+        "requestBody": {
+          "required": true,
+          "description": "Информация о назначаемой подписке.",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubscriptionAssign" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Подписка назначена.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubscriptionRead" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/subscriptions/revoke/{sub_id}": {
+      "delete": {
+        "tags": ["subscriptions"],
+        "summary": "Отменить подписку",
+        "description": "Удаляет подписку из активных у пользователя.",
+        "operationId": "revoke_subscription_subscriptions_revoke__sub_id__delete",
+        "parameters": [
+          {
+            "name": "sub_id",
+            "in": "path",
+            "description": "ID подписки для удаления.",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Подписка отменена.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StandardResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/health": {
+      "get": {
+        "summary": "Проверка состояния сервера",
+        "description": "Возвращает 200 OK если сервис работает.",
+        "operationId": "healthcheck_health_get",
+        "responses": {
+          "200": {
+            "description": "Сервис работает нормально."
+          }
+        }
+      }
+    }
+  },
+
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "description": "Стандартная ошибка валидации FastAPI.",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ValidationError" }
+          }
+        },
+        "type": "object"
+      },
+
+      "LoginHistoryRead": {
+        "description": "Запись из истории логинов пользователя.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID записи."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Дата и время входа."
+          },
+          "ip_address": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ],
+            "description": "IP-адрес пользователя при входе."
+          },
+          "user_agent": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ],
+            "description": "User-Agent браузера."
+          }
+        },
+        "required": [
+          "id",
+          "timestamp",
+          "ip_address",
+          "user_agent"
+        ]
+      },
+
+      "PasswordChange": {
+        "description": "Схема запроса смены пароля.",
+        "type": "object",
+        "properties": {
+          "old_password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Текущий пароль пользователя."
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Новый пароль."
+          }
+        },
+        "required": ["old_password", "new_password"]
+      },
+
+      "RoleCreate": {
+        "description": "Модель создания роли.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Название роли."
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ],
+            "description": "Описание роли."
+          },
+          "permissions": {
+            "type": "string",
+            "description": "CSV-строка с разрешениями (permissions)."
+          },
+          "type": {
+            "$ref": "#/components/schemas/RoleType",
+            "description": "Тип роли (default/admin/system)."
+          }
+        },
+        "required": ["name"]
+      },
+
+      "RoleRead": {
+        "description": "Модель отображения роли.",
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          },
+          "permissions": { "type": "string" },
+          "type": { "$ref": "#/components/schemas/RoleType" },
+          "id": { "type": "string", "format": "uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["name", "id", "created_at"]
+      },
+
+      "RoleType": {
+        "type": "string",
+        "description": "Тип роли: обычная, администраторская или системная.",
+        "enum": ["default", "admin", "system"]
+      },
+
+      "StandardResponse": {
+        "type": "object",
+        "description": "Стандартный ответ API с текстовым сообщением.",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Описание результата операции."
+          }
+        },
+        "required": ["detail"]
+      },
+
+      "SubscriptionAssign": {
+        "type": "object",
+        "description": "Данные для назначения подписки.",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "description": "ID пользователя."
+          },
+          "subscription_type": {
+            "type": "string",
+            "description": "Тип подписки (например: premium)."
+          }
+        },
+        "required": ["user_id", "subscription_type"]
+      },
+
+      "SubscriptionRead": {
+        "type": "object",
+        "description": "Данные об активной подписке пользователя.",
+        "properties": {
+          "name": { "type": "string", "description": "Название подписки." },
+          "description": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ],
+            "description": "Описание подписки."
+          },
+          "entitlements": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string" },
+            "description": "Права, предоставляемые подпиской."
+          },
+          "duration_days": {
+            "anyOf": [
+              { "type": "integer" },
+              { "type": "null" }
+            ],
+            "description": "Длительность подписки в днях."
+          },
+          "id": { "type": "string", "format": "uuid", "description": "ID подписки." },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus",
+            "description": "Статус подписки."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID пользователя."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Когда подписка была активирована."
+          },
+          "ends_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "description": "Когда подписка заканчивается."
+          }
+        },
+        "required": [
+          "name",
+          "id",
+          "status",
+          "user_id",
+          "started_at"
+        ]
+      },
+
+      "SubscriptionStatus": {
+        "type": "string",
+        "description": "Текущий статус подписки.",
+        "enum": ["active", "past_due", "cancelled", "expired"]
+      },
+
+      "UserCreate": {
+        "type": "object",
+        "description": "Модель регистрации пользователя.",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email пользователя."
+          },
+          "full_name": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ],
+            "description": "Полное имя пользователя."
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Активен ли пользователь.",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "description": "Имеет ли суперправа.",
+            "default": false
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Пароль пользователя."
+          }
+        },
+        "required": ["email", "password"]
+      },
+
+      "UserLogin": {
+        "type": "object",
+        "description": "Учётные данные для входа.",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email пользователя."
+          },
+          "password": {
+            "type": "string",
+            "description": "Пароль."
+          }
+        },
+        "required": ["email", "password"]
+      },
+
+      "UserRead": {
+        "type": "object",
+        "description": "Информация о пользователе.",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "full_name": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          },
+          "is_active": { "type": "boolean" },
+          "is_superuser": { "type": "boolean" },
+          "id": { "type": "string", "format": "uuid" },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Список ролей пользователя."
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Список подписок пользователя."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Дата создания."
+          },
+          "updated_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["email", "id", "created_at"]
+      },
+
+      "UserRoleInput": {
+        "type": "object",
+        "description": "Данные для назначения роли пользователю.",
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID роли."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID пользователя."
+          }
+        },
+        "required": ["role_id", "user_id"]
+      },
+
+      "ValidationError": {
+        "type": "object",
+        "description": "Описание ошибки валидации.",
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                { "type": "string" },
+                { "type": "integer" }
+              ]
+            },
+            "description": "Локация ошибки."
+          },
+          "msg": {
+            "type": "string",
+            "description": "Сообщение ошибки."
+          },
+          "type": {
+            "type": "string",
+            "description": "Тип ошибки."
+          }
+        },
+        "required": ["loc", "msg", "type"]
+      }
+    },
+
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Аутентификация через access-token."
+      },
+      "AuthBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Аутентификация для пользовательских маршрутов."
+      }
+    }
+  }
+}
